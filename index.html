@@ -133,31 +133,58 @@
     }
 
     window.addEventListener('load', async () => {
-    // Modern dapp browsers...
-    if (window.ethereum) {
-        window.web3 = new Web3(ethereum);
-        try {
-            // Request account access if needed
-            const accounts = await ethereum.enable();
-            // Acccounts now exposed
-            userAccount = accounts[0];
-            startApp()
-        } catch (error) {
-            // User denied account access...
+      if (typeof window.ethereum === 'undefined') {
+        console.log('MetaMask not detected! Please install it.');
+        return;
+      }
+
+      window.web3 = new Web3(window.ethereum);
+
+      try {
+        // Request MetaMask access
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        userAccount = accounts[0];
+        console.log("Connected account:", userAccount);
+
+        // Ensure correct network (Ganache = chainId 0x539)
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        console.log("Current network chainId:", chainId);
+
+        if (chainId !== '0x539') {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: '0x539' }],
+            });
+            console.log("✅ Switched MetaMask to Ganache network.");
+          } catch (switchError) {
+            console.error("❌ Unable to switch network:", switchError);
+            alert("Please switch MetaMask to the Ganache network (http://127.0.0.1:7545).");
+            return;
+          }
         }
-    }
-    // Legacy dapp browsers...
-    else if (window.web3) {
-        window.web3 = new Web3(web3.currentProvider);
-        // Acccounts always exposed
-        userAccount = web3.eth.accounts[0];
-        startApp()
-    }
-    // Non-dapp browsers...
-    else {
-        console.log('Non-Ethereum browser detected. You should consider trying MetaMask!');
-    }
-   });
+
+        // Start app once network and account are ready
+        startApp();
+
+      } catch (error) {
+        console.error("Error connecting to MetaMask:", error);
+        alert("Please unlock MetaMask and allow access to continue.");
+      }
+
+      // Handle network/account changes dynamically
+      ethereum.on('accountsChanged', (accounts) => {
+        userAccount = accounts[0];
+        console.log("Switched account:", userAccount);
+        startApp();
+      });
+
+      ethereum.on('chainChanged', (chainId) => {
+        console.log("Network changed:", chainId);
+        window.location.reload();
+      });
+    });
+
  
    //the following code from Lesson 6, chapter 2 is obsolete
    //metamask no longer inject web3 since early 2021
