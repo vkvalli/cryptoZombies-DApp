@@ -5,20 +5,120 @@
 <head>
   <meta charset="UTF-8">
   <title>CryptoZombies front-end</title>
-<link rel="icon" href="favicon.ico">
+  <link rel="icon" href="favicon.ico">
   <script language="javascript" type="text/javascript"
     src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
   <script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.2.7-rc.0/web3.min.js"></script>
   <script language="javascript" type="text/javascript" src="cryptozombies_abi.js"></script>
+
+  <style>
+    /* ---------- Page Layout ---------- */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Poppins", "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #1e3a8a, #111827);
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    h1 {
+      margin-top: 60px;
+      font-size: 2.5rem;
+      color: #c4b5fd;
+      text-shadow: 0 0 18px rgba(167,139,250,0.6);
+      text-align: center;
+    }
+
+    #txStatus {
+      margin-top: 20px;
+      padding: 10px 25px;
+      background: rgba(99,102,241,0.15);
+      border: 1px solid rgba(139,92,246,0.5);
+      border-radius: 10px;
+      font-weight: 500;
+      text-align: center;
+      box-shadow: 0 0 10px rgba(139,92,246,0.4);
+    }
+
+    /* ---------- Buttons ---------- */
+    .button-group {
+      margin-top: 30px;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    button {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 22px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(124,58,237,0.4);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 15px rgba(124,58,237,0.6);
+    }
+
+    /* ---------- Zombie Cards ---------- */
+    #zombies {
+      width: 100%;
+      max-width: 1100px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 18px;
+      padding: 40px 20px;
+      box-sizing: border-box;
+    }
+
+    .zombie {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 15px;
+      padding: 15px 20px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+      transition: transform 0.2s ease;
+    }
+
+    .zombie:hover {
+      transform: translateY(-4px);
+    }
+
+    .zombie ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .zombie li {
+      margin: 6px 0;
+    }
+  </style>
 </head>
 
 <body>
+  <h1>🧟‍♂️ Welcome to CryptoZombies Factory</h1>
   <div id="txStatus"></div>
   <div id="zombies"></div>
 
-  <button class="showZombieButton">Show Zombies</button>
-  <button class="createzombieButton">Create Zombie</button>
-  <button class="levelupButton">Level Up</button>
+  <div class="button-group">
+    <button class="showZombieButton">Show Zombies</button>
+    <button class="createzombieButton">Create Zombie</button>
+    <button class="levelupButton">Level Up</button>
+  </div>
+  
 
   <script>
 
@@ -133,31 +233,58 @@
     }
 
     window.addEventListener('load', async () => {
-    // Modern dapp browsers...
-    if (window.ethereum) {
-        window.web3 = new Web3(ethereum);
-        try {
-            // Request account access if needed
-            const accounts = await ethereum.enable();
-            // Acccounts now exposed
-            userAccount = accounts[0];
-            startApp()
-        } catch (error) {
-            // User denied account access...
+      if (typeof window.ethereum === 'undefined') {
+        console.log('MetaMask not detected! Please install it.');
+        return;
+      }
+
+      window.web3 = new Web3(window.ethereum);
+
+      try {
+        // Request MetaMask access
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        userAccount = accounts[0];
+        console.log("Connected account:", userAccount);
+
+        // Ensure correct network (Ganache = chainId 0x539)
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        console.log("Current network chainId:", chainId);
+
+        if (chainId !== '0x539') {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: '0x539' }],
+            });
+            console.log("✅ Switched MetaMask to Ganache network.");
+          } catch (switchError) {
+            console.error("❌ Unable to switch network:", switchError);
+            alert("Please switch MetaMask to the Ganache network (http://127.0.0.1:7545).");
+            return;
+          }
         }
-    }
-    // Legacy dapp browsers...
-    else if (window.web3) {
-        window.web3 = new Web3(web3.currentProvider);
-        // Acccounts always exposed
-        userAccount = web3.eth.accounts[0];
-        startApp()
-    }
-    // Non-dapp browsers...
-    else {
-        console.log('Non-Ethereum browser detected. You should consider trying MetaMask!');
-    }
-   });
+
+        // Start app once network and account are ready
+        startApp();
+
+      } catch (error) {
+        console.error("Error connecting to MetaMask:", error);
+        alert("Please unlock MetaMask and allow access to continue.");
+      }
+
+      // Handle network/account changes dynamically
+      ethereum.on('accountsChanged', (accounts) => {
+        userAccount = accounts[0];
+        console.log("Switched account:", userAccount);
+        startApp();
+      });
+
+      ethereum.on('chainChanged', (chainId) => {
+        console.log("Network changed:", chainId);
+        window.location.reload();
+      });
+    });
+
  
    //the following code from Lesson 6, chapter 2 is obsolete
    //metamask no longer inject web3 since early 2021
