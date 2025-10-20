@@ -117,6 +117,8 @@
     <button class="showZombieButton">Show Zombies</button>
     <button class="createzombieButton">Create Zombie</button>
     <button class="levelupButton">Level Up</button>
+    <button class="feedZombieButton">Feed on Kitty</button>
+    <button class="createKittyButton">Create Test Kitties</button>
   </div>
   
 
@@ -130,8 +132,8 @@
 
     function startApp() {
 	
-      //ZombieOwnership contratc address
-      var cryptoZombiesAddress = "0xe982E462b094850F12AF94d21D470e21bE9D0E9C";
+      //ZombieOwnership contract address
+      var cryptoZombiesAddress = "0xEd447aCB0CEb49d77f317dD6D37CB64da7a7E7F8";
 
       cryptoZombies = new web3.eth.Contract(cryptoZombiesABI, cryptoZombiesAddress);
 
@@ -153,6 +155,10 @@
           getZombiesByOwner(userAccount).then(displayZombies);
         }).on("error", console.error);
     }
+
+    // cryptoZombies.methods.KittyContract().call().then(addr=>{
+    //   console.log("Kitty contract linked to:", addr);
+    // });
 
     function displayZombies(ids) {
       $("#zombies").empty();
@@ -204,7 +210,9 @@
           getZombiesByOwner(userAccount).then(displayZombies);
         })
         .on("error", function (error) {
-          $("#txStatus").text(error);
+          console.error("FeedOnKitty failed:", error);
+          const msg = error && error.message ? error.message : JSON.stringify(error, null, 2);
+          $("#txStatus").text("❌" + msg);
         });
     }
 
@@ -231,6 +239,54 @@
     function getZombiesByOwner(owner) {
       return cryptoZombies.methods.getZombiesByOwner(owner).call()
     }
+
+    const feedZombieButton=document.querySelector('.feedZombieButton');
+    feedZombieButton.addEventListener('click', async () =>{
+      const zombieId=prompt("Enter your Zombie ID:");
+      const kittyId=prompt("Enter Kitty ID to feed on:");
+      if (!zombieId||!kittyId) return;
+      await feedOnKitty(zombieId,kittyId);
+    })
+
+    async function createTestKitties() {
+      const KittyContract = new web3.eth.Contract(
+        [ // ABI subset (only what we need)
+          {
+            "inputs": [{"name": "_genes","type": "uint256"}, {"name": "_generation","type": "uint16"}],
+            "name": "createKitty",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+          },
+          {
+            "inputs": [{"name": "_id","type": "uint256"}],
+            "name": "getKitty",
+            "outputs": [
+              {"name": "isGestating","type": "bool"},
+              {"name": "isReady","type": "bool"},
+              {"name": "cooldownIndex","type": "uint256"},
+              {"name": "nextActionAt","type": "uint256"},
+              {"name": "siringWithId","type": "uint256"},
+              {"name": "birthTime","type": "uint256"},
+              {"name": "matronId","type": "uint256"},
+              {"name": "sireId","type": "uint256"},
+              {"name": "generation","type": "uint256"},
+              {"name": "genes","type": "uint256"}
+            ],
+            "stateMutability": "view",
+            "type": "function"
+          }
+        ],
+        "0xe93e3B649d4E01e47dd2170CAFEf0651477649Da" //kittycontract address
+      );
+
+      $("#txStatus").text("Creating test kitties...");
+      await KittyContract.methods.createKitty(987654321, 0).send({from: userAccount});
+      await KittyContract.methods.createKitty(555777999, 1).send({from: userAccount});
+      $("#txStatus").text("✅ Test kitties created! You can now feed your zombies on Kitty #0 or #1.");
+    }
+
+    document.querySelector('.createKittyButton').addEventListener('click', createTestKitties);
 
     window.addEventListener('load', async () => {
       if (typeof window.ethereum === 'undefined') {
