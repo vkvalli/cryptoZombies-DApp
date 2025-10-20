@@ -140,7 +140,7 @@
     function startApp() {
 	
       //ZombieOwnership contract address
-      var cryptoZombiesAddress = "0xEd447aCB0CEb49d77f317dD6D37CB64da7a7E7F8";
+      var cryptoZombiesAddress = "0xe982E462b094850F12AF94d21D470e21bE9D0E9C";
 
       cryptoZombies = new web3.eth.Contract(cryptoZombiesABI, cryptoZombiesAddress);
 
@@ -177,8 +177,10 @@
         getZombieDetails(id)
           .then(function (zombie) {
 
-
-            $("#zombies").append(`<div class="zombie">
+            const imgUrl = `https://robohash.org/${zombie.dna}?set=set3`;
+            $("#zombies").append(`<div class="zombie"> <img src="${imgUrl}" width="100%" 
+            style="border-radius:10px;margin-bottom:8px;
+                box-shadow:0 4px 10px rgba(0,0,0,0.4);">
               <ul>
                 <li>Name: ${zombie.name}</li>
                 <li>DNA: ${zombie.dna}</li>
@@ -377,8 +379,10 @@
 
  
     createzombieButton.addEventListener('click', () => {
-      createRandomZombie(userAccount);
-
+      //createRandomZombie(userAccount);
+      // give each zombie a different name so DNA differs
+      const randomName = `Z-${Math.random().toString(36).slice(2,7)}-${Date.now().toString().slice(-4)}`;
+      createRandomZombie(randomName);
     });
 
     showZombieButton.addEventListener('click', () => {
@@ -387,10 +391,16 @@
 
     });
 
-    levelupButton.addEventListener('click', () => {
-      getZombiesByOwner(userAccount)
-            .then(levelUp);
+    levelupButton.addEventListener('click', async () => {
+      const ids = await getZombiesByOwner(userAccount);
+      if (!ids.length) { $("#txStatus").text("You don’t own any zombies yet."); return; }
 
+      const idToLevel = prompt(`Enter a zombie id to level up: ${ids.join(', ')}`, ids[ids.length - 1]);
+      if (!idToLevel) return;
+
+      await levelUp(idToLevel);
+      const after = await getZombiesByOwner(userAccount);
+      displayZombies(after);
     });
 
 
