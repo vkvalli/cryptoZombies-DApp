@@ -175,9 +175,9 @@
 
         getZombieDetails(id)
           .then(function (zombie) {
-            const imgUrl = https://robohash.org/${zombie.dna}?set=set2;
+            const imgUrl = `https://robohash.org/${zombie.dna}?set=set2`;
             $("#zombies").append(`<div class="zombie">
-              <img src="${imgUrl}" width="100%" style="border-radius:10px;margin-bottom:8px;">
+              <img src="${imgUrl}" width="100%" style="border-radius:10px;margin-bottom:8px;" width="100%" style="border-radius:10px;margin-bottom:8px;box-shadow:0 4px 10px rgba(0,0,0,0.4);">
               <ul>
                 <li>Name: ${zombie.name}</li>
                 <li>DNA: ${zombie.dna}</li>
