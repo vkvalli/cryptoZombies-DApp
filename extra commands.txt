@@ -1,3 +1,8 @@
+ganache:
 npx ganache-cli -p 7545 -i 1337 --deterministic
+
+start website:
 npx http-server -p 8080 -c-1
+
+remove folder via git cli:
 Remove-Item -Recurse -Force .\build
