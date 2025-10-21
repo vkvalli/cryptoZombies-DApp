@@ -6,10 +6,107 @@
   <meta charset="UTF-8">
   <title>CryptoZombies front-end</title>
   <link rel="icon" href="favicon.ico">
+  <link rel="icon" href="favicon.ico">
   <script language="javascript" type="text/javascript"
     src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
   <script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.2.7-rc.0/web3.min.js"></script>
   <script language="javascript" type="text/javascript" src="cryptozombies_abi.js"></script>
+
+  <style>
+    /* ---------- Page Layout ---------- */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Poppins", "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #1e3a8a, #111827);
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    h1 {
+      margin-top: 60px;
+      font-size: 2.5rem;
+      color: #c4b5fd;
+      text-shadow: 0 0 18px rgba(167,139,250,0.6);
+      text-align: center;
+    }
+
+    #txStatus {
+      margin-top: 20px;
+      padding: 10px 25px;
+      background: rgba(99,102,241,0.15);
+      border: 1px solid rgba(139,92,246,0.5);
+      border-radius: 10px;
+      font-weight: 500;
+      text-align: center;
+      box-shadow: 0 0 10px rgba(139,92,246,0.4);
+    }
+
+    /* ---------- Buttons ---------- */
+    .button-group {
+      margin-top: 30px;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    button {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 22px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(124,58,237,0.4);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 15px rgba(124,58,237,0.6);
+    }
+
+    /* ---------- Zombie Cards ---------- */
+    #zombies {
+      width: 100%;
+      max-width: 1100px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 18px;
+      padding: 40px 20px;
+      box-sizing: border-box;
+    }
+
+    .zombie {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 15px;
+      padding: 15px 20px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+      transition: transform 0.2s ease;
+    }
+
+    .zombie:hover {
+      transform: translateY(-4px);
+    }
+
+    .zombie ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .zombie li {
+      margin: 6px 0;
+    }
+  </style>
 
   <style>
     /* ---------- Page Layout ---------- */
@@ -133,6 +230,7 @@
 
     var cryptoZombies;
     var userAccount;
+    var kittyContractAddress;
     const showZombieButton = document.querySelector('.showZombieButton');
     const createzombieButton = document.querySelector('.createzombieButton');
     const levelupButton = document.querySelector('.levelupButton');
@@ -140,7 +238,9 @@
     function startApp() {
 	
       //ZombieOwnership contract address
-      var cryptoZombiesAddress = "0x1b88Bdb8269A1aB1372459F5a4eC3663D6f5cCc4";
+      var cryptoZombiesAddress = "0xf42Fe9b8e2009be073f1AeDc57a72623AC4F3045";
+      kittyContractAddress = "0xC045C7B6B976d24728872d2117073c893d0B09C2";
+      console.log("KittyContract manually linked:", kittyContractAddress);
 
       cryptoZombies = new web3.eth.Contract(cryptoZombiesABI, cryptoZombiesAddress);
 
@@ -165,6 +265,10 @@
       $("#accountInfo").text(`🔗 Connected: ${userAccount} (Network: Ganache 1337)`);
 
     }
+
+    // cryptoZombies.methods.KittyContract().call().then(addr=>{
+    //   console.log("Kitty contract linked to:", addr);
+    // });
 
     // cryptoZombies.methods.KittyContract().call().then(addr=>{
     //   console.log("Kitty contract linked to:", addr);
@@ -222,6 +326,9 @@
           getZombiesByOwner(userAccount).then(displayZombies);
         })
         .on("error", function (error) {
+          console.error("FeedOnKitty failed:", error);
+          const msg = error && error.message ? error.message : JSON.stringify(error, null, 2);
+          $("#txStatus").text("❌" + msg);
           console.error("FeedOnKitty failed:", error);
           const msg = error && error.message ? error.message : JSON.stringify(error, null, 2);
           $("#txStatus").text("❌" + msg);
@@ -289,7 +396,7 @@
             "type": "function"
           }
         ],
-        "0xe93e3B649d4E01e47dd2170CAFEf0651477649Da" //kittycontract address
+        kittyContractAddress //kittycontract address
       );
 
       $("#txStatus").text("Creating test kitties...");
@@ -301,6 +408,58 @@
     document.querySelector('.createKittyButton').addEventListener('click', createTestKitties);
 
     window.addEventListener('load', async () => {
+      if (typeof window.ethereum === 'undefined') {
+        console.log('MetaMask not detected! Please install it.');
+        return;
+      }
+
+      window.web3 = new Web3(window.ethereum);
+
+      try {
+        // Request MetaMask access
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        userAccount = accounts[0];
+        console.log("Connected account:", userAccount);
+
+        // Ensure correct network (Ganache = chainId 0x539)
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        console.log("Current network chainId:", chainId);
+
+        if (chainId !== '0x539') {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: '0x539' }],
+            });
+            console.log("✅ Switched MetaMask to Ganache network.");
+          } catch (switchError) {
+            console.error("❌ Unable to switch network:", switchError);
+            alert("Please switch MetaMask to the Ganache network (http://127.0.0.1:7545).");
+            return;
+          }
+        }
+
+        // Start app once network and account are ready
+        startApp();
+
+      } catch (error) {
+        console.error("Error connecting to MetaMask:", error);
+        alert("Please unlock MetaMask and allow access to continue.");
+      }
+
+      // Handle network/account changes dynamically
+      ethereum.on('accountsChanged', (accounts) => {
+        userAccount = accounts[0];
+        console.log("Switched account:", userAccount);
+        startApp();
+      });
+
+      ethereum.on('chainChanged', (chainId) => {
+        console.log("Network changed:", chainId);
+        window.location.reload();
+      });
+    });
+
       if (typeof window.ethereum === 'undefined') {
         console.log('MetaMask not detected! Please install it.');
         return;
