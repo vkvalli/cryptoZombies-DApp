@@ -7609,17 +7609,9 @@
     "name": "solc",
     "version": "0.4.25+commit.59dbf8f1.Emscripten.clang"
   },
-  "networks": {
-    "1337": {
-      "events": {},
-      "links": {},
-      "address": "0x970e8f18ebfEa0B08810f33a5A40438b9530FBCF",
-      "transactionHash": "0x900047bf3a6fdc89c46b6b3443284d9c09d619a868783b1d46181a66b6b89828"
-    }
-  },
+  "networks": {},
   "schemaVersion": "3.4.16",
-  "updatedAt": "2025-10-20T07:42:10.867Z",
-  "networkType": "ethereum",
+  "updatedAt": "2025-10-21T08:39:48.543Z",
   "devdoc": {
     "methods": {},
     "title": "SafeMath"
