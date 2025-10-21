@@ -19,7 +19,11 @@ contract KittyInterface {
 
 contract ZombieFeeding is ZombieFactory {
 
-  KittyInterface kittyContract;
+  KittyInterface public kittyContract;
+
+  function getKittyContractAddress() external view returns (address) {
+      return address(kittyContract);
+  }
 
   modifier onlyOwnerOf(uint _zombieId) {
     require(msg.sender == zombieToOwner[_zombieId]);

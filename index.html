@@ -126,6 +126,7 @@
 
     var cryptoZombies;
     var userAccount;
+    var kittyContractAddress;
     const showZombieButton = document.querySelector('.showZombieButton');
     const createzombieButton = document.querySelector('.createzombieButton');
     const levelupButton = document.querySelector('.levelupButton');
@@ -133,7 +134,9 @@
     function startApp() {
 	
       //ZombieOwnership contract address
-      var cryptoZombiesAddress = "0xEd447aCB0CEb49d77f317dD6D37CB64da7a7E7F8";
+      var cryptoZombiesAddress = "0xf42Fe9b8e2009be073f1AeDc57a72623AC4F3045";
+      kittyContractAddress = "0xC045C7B6B976d24728872d2117073c893d0B09C2";
+      console.log("KittyContract manually linked:", kittyContractAddress);
 
       cryptoZombies = new web3.eth.Contract(cryptoZombiesABI, cryptoZombiesAddress);
 
@@ -277,7 +280,7 @@
             "type": "function"
           }
         ],
-        "0xe93e3B649d4E01e47dd2170CAFEf0651477649Da" //kittycontract address
+        kittyContractAddress //kittycontract address
       );
 
       $("#txStatus").text("Creating test kitties...");
