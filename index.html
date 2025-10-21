@@ -403,6 +403,30 @@
       displayZombies(after);
     });
 
+    // --- Battle button logic ---
+    const battleButton = document.querySelector('.battleButton');
+
+    if (battleButton) {
+      battleButton.addEventListener('click', async () => {
+        const zombieId = prompt("Enter your Zombie ID:");
+        const targetId = prompt("Enter the target Zombie ID to battle:");
+        if (!zombieId || !targetId) return;
+
+        $("#txStatus").text("⚔ Battling zombies...");
+        try {
+          await cryptoZombies.methods.attack(zombieId, targetId)
+            .send({ from: userAccount });
+
+          $("#txStatus").text("✅ Battle complete! Check stats under Show Zombies.");
+          const after = await getZombiesByOwner(userAccount);
+          displayZombies(after);
+        } catch (error) {
+          console.error("Battle failed:", error);
+          const msg = error && error.message ? error.message : JSON.stringify(error, null, 2);
+          $("#txStatus").text("❌ " + msg);
+        }
+      });
+    }
 
 
   </script>
