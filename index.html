@@ -226,7 +226,8 @@
   </div>
   
 
-  <script>
+  <!-- <script>
+
 
     var cryptoZombies;
     var userAccount;
@@ -329,9 +330,6 @@
           console.error("FeedOnKitty failed:", error);
           const msg = error && error.message ? error.message : JSON.stringify(error, null, 2);
           $("#txStatus").text("❌" + msg);
-          console.error("FeedOnKitty failed:", error);
-          const msg = error && error.message ? error.message : JSON.stringify(error, null, 2);
-          $("#txStatus").text("❌" + msg);
         });
     }
 
@@ -407,58 +405,42 @@
 
     document.querySelector('.createKittyButton').addEventListener('click', createTestKitties);
 
-    window.addEventListener('load', async () => {
-      if (typeof window.ethereum === 'undefined') {
-        console.log('MetaMask not detected! Please install it.');
-        return;
-      }
+  
 
-      window.web3 = new Web3(window.ethereum);
+      //   // Ensure correct network (Ganache = chainId 0x539)
+      //   const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+      //   console.log("Current network chainId:", chainId);
 
-      try {
-        // Request MetaMask access
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        userAccount = accounts[0];
-        console.log("Connected account:", userAccount);
+      //   if (chainId !== '0x539') {
+      //     try {
+      //       await window.ethereum.request({
+      //         method: 'wallet_switchEthereumChain',
+      //         params: [{ chainId: '0x539' }],
+      //       });
+      //       console.log("✅ Switched MetaMask to Ganache network.");
+      //     } catch (switchError) {
+      //       console.error("❌ Unable to switch network:", switchError);
+      //       alert("Please switch MetaMask to the Ganache network (http://127.0.0.1:7545).");
+      //       return;
+      //     }
+      //   }
 
-        // Ensure correct network (Ganache = chainId 0x539)
-        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-        console.log("Current network chainId:", chainId);
+      //   // Start app once network and account are ready
+      //   startApp();
 
-        if (chainId !== '0x539') {
-          try {
-            await window.ethereum.request({
-              method: 'wallet_switchEthereumChain',
-              params: [{ chainId: '0x539' }],
-            });
-            console.log("✅ Switched MetaMask to Ganache network.");
-          } catch (switchError) {
-            console.error("❌ Unable to switch network:", switchError);
-            alert("Please switch MetaMask to the Ganache network (http://127.0.0.1:7545).");
-            return;
-          }
-        }
+      // } catch (error) {
+      //   console.error("Error connecting to MetaMask:", error);
+      //   alert("Please unlock MetaMask and allow access to continue.");
+      // }
 
-        // Start app once network and account are ready
-        startApp();
+      // // Handle network/account changes dynamically
+      // ethereum.on('accountsChanged', (accounts) => {
+      //   userAccount = accounts[0];
+      //   console.log("Switched account:", userAccount);
+      //   startApp();
+      // });
 
-      } catch (error) {
-        console.error("Error connecting to MetaMask:", error);
-        alert("Please unlock MetaMask and allow access to continue.");
-      }
 
-      // Handle network/account changes dynamically
-      ethereum.on('accountsChanged', (accounts) => {
-        userAccount = accounts[0];
-        console.log("Switched account:", userAccount);
-        startApp();
-      });
-
-      ethereum.on('chainChanged', (chainId) => {
-        console.log("Network changed:", chainId);
-        window.location.reload();
-      });
-    });
 
       if (typeof window.ethereum === 'undefined') {
         console.log('MetaMask not detected! Please install it.');
@@ -588,6 +570,210 @@
     }
 
 
+  </script> -->
+  <script>
+    let cryptoZombies;
+    let userAccount;
+
+    const showZombieButton = document.querySelector('.showZombieButton');
+    const createzombieButton = document.querySelector('.createzombieButton');
+    const levelupButton = document.querySelector('.levelupButton');
+    const feedZombieButton = document.querySelector('.feedZombieButton');
+    const createKittyButton = document.querySelector('.createKittyButton');
+
+    async function startApp() {
+      const cryptoZombiesAddress = "0xe982E462b094850F12AF94d21D470e21bE9D0E9C"; // replace with your deployed contract address
+      cryptoZombies = new web3.eth.Contract(cryptoZombiesABI, cryptoZombiesAddress);
+
+      cryptoZombies.events.Transfer({ filter: { _to: userAccount } })
+        .on("data", function (event) {
+          getZombiesByOwner(userAccount).then(displayZombies);
+        })
+        .on("error", console.error);
+
+      $("#accountInfo").text(🔗 Connected: ${userAccount} (Network: Ganache 1337));
+    }
+
+    async function displayZombies(ids) {
+      $("#zombies").empty();
+      for (const id of ids) {
+        const z = await getZombieDetails(id);
+        const imgUrl = https://robohash.org/${z.dna}?set=set3;
+        $("#zombies").append(`
+          <div class="zombie">
+            <img src="${imgUrl}" width="100%" style="border-radius:10px;margin-bottom:8px;box-shadow:0 4px 10px rgba(0,0,0,0.4);">
+            <ul>
+              <li>Name: ${z.name}</li>
+              <li>DNA: ${z.dna}</li>
+              <li>Level: ${z.level}</li>
+              <li>Wins: ${z.winCount}</li>
+              <li>Losses: ${z.lossCount}</li>
+              <li>Ready Time: ${z.readyTime}</li>
+            </ul>
+          </div>
+        `);
+      }
+    }
+
+    async function createRandomZombie(name) {
+      $("#txStatus").text("Creating new zombie on the blockchain...");
+      try {
+        await cryptoZombies.methods.createRandomZombie(name).send({ from: userAccount });
+        $("#txStatus").text("✅ Zombie created successfully!");
+        getZombiesByOwner(userAccount).then(displayZombies);
+      } catch (err) {
+        $("#txStatus").text(❌ ${err.message});
+      }
+    }
+
+    async function levelUp(zombieId) {
+      $("#txStatus").text("Leveling up zombie...");
+      try {
+        await cryptoZombies.methods.levelUp(zombieId).send({
+          from: userAccount,
+          value: web3.utils.toWei("0.001", "ether")
+        });
+        $("#txStatus").text("✅ Zombie leveled up!");
+        getZombiesByOwner(userAccount).then(displayZombies);
+      } catch (err) {
+        $("#txStatus").text(❌ ${err.message});
+      }
+    }
+
+    async function feedOnKitty(zombieId, kittyId) {
+      $("#txStatus").text("Feeding on kitty...");
+      try {
+        await cryptoZombies.methods.feedOnKitty(zombieId, kittyId).send({ from: userAccount });
+        $("#txStatus").text("✅ Kitty eaten! New zombie spawned.");
+        getZombiesByOwner(userAccount).then(displayZombies);
+      } catch (err) {
+        console.error("FeedOnKitty failed:", err);
+        $("#txStatus").text(❌ ${err.message});
+      }
+    }
+
+    async function createTestKitties() {
+      const kittyAddress = "0xe93e3B649d4E01e47dd2170CAFEf0651477649Da"; // replace with KittyContract address
+      const KittyContract = new web3.eth.Contract([
+        {
+          "inputs": [{"name": "_genes","type": "uint256"}, {"name": "_generation","type": "uint16"}],
+          "name": "createKitty",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [{"name": "_id","type": "uint256"}],
+          "name": "getKitty",
+          "outputs": [
+            {"name": "isGestating","type": "bool"},
+            {"name": "isReady","type": "bool"},
+            {"name": "cooldownIndex","type": "uint256"},
+            {"name": "nextActionAt","type": "uint256"},
+            {"name": "siringWithId","type": "uint256"},
+            {"name": "birthTime","type": "uint256"},
+            {"name": "matronId","type": "uint256"},
+            {"name": "sireId","type": "uint256"},
+            {"name": "generation","type": "uint256"},
+            {"name": "genes","type": "uint256"}
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        }
+      ], kittyAddress);
+
+      $("#txStatus").text("Creating test kitties...");
+      try {
+        await KittyContract.methods.createKitty(987654321, 0).send({ from: userAccount });
+        await KittyContract.methods.createKitty(555777999, 1).send({ from: userAccount });
+        $("#txStatus").text("✅ Test kitties created! You can now feed your zombies.");
+      } catch (err) {
+        $("#txStatus").text(❌ ${err.message});
+      }
+    }
+
+    function getZombieDetails(id) {
+      return cryptoZombies.methods.zombies(id).call();
+    }
+
+    function getZombiesByOwner(owner) {
+      return cryptoZombies.methods.getZombiesByOwner(owner).call();
+    }
+
+    // --------------------  MetaMask Init --------------------
+    window.addEventListener('load', async () => {
+      if (typeof window.ethereum === 'undefined') {
+        console.log('MetaMask not detected! Please install it.');
+        return;
+      }
+
+      window.web3 = new Web3(window.ethereum);
+
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        userAccount = accounts[0];
+        console.log("Connected account:", userAccount);
+
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        console.log("Current network chainId:", chainId);
+
+        if (chainId !== '0x539') {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: '0x539' }],
+            });
+            console.log("✅ Switched MetaMask to Ganache network.");
+          } catch (switchError) {
+            console.error("❌ Unable to switch network:", switchError);
+            alert("Please switch MetaMask to the Ganache network (http://127.0.0.1:7545).");
+            return;
+          }
+        }
+
+        startApp();
+
+      } catch (error) {
+        console.error("Error connecting to MetaMask:", error);
+        alert("Please unlock MetaMask and allow access to continue.");
+      }
+
+      ethereum.on('accountsChanged', (accounts) => {
+        userAccount = accounts[0];
+        console.log("Switched account:", userAccount);
+        startApp();
+      });
+
+      ethereum.on('chainChanged', (chainId) => {
+        console.log("Network changed:", chainId);
+        window.location.reload();
+      });
+    });
+
+    // --------------------  Button Listeners --------------------
+    createzombieButton.addEventListener('click', async () => {
+      const randomName = Z-${Math.random().toString(36).slice(2, 6)}-${Date.now().toString().slice(-3)};
+      await createRandomZombie(randomName);
+    });
+
+    showZombieButton.addEventListener('click', async () => {
+      const ids = await getZombiesByOwner(userAccount);
+      displayZombies(ids);
+    });
+
+    levelupButton.addEventListener('click', async () => {
+      const ids = await getZombiesByOwner(userAccount);
+      const id = prompt(Enter zombie id to level up: ${ids.join(", ")});
+      if (id) await levelUp(id);
+    });
+
+    feedZombieButton.addEventListener('click', async () => {
+      const zombieId = prompt("Enter your Zombie ID:");
+      const kittyId = prompt("Enter Kitty ID to feed on:");
+      if (zombieId && kittyId) await feedOnKitty(zombieId, kittyId);
+    });
+
+    createKittyButton.addEventListener('click', createTestKitties);
   </script>
 </body>
 
